@@ -38,20 +38,64 @@
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Vamos organizar seu dia!"
-                android:textColor="#DDDDDD"
-                android:textSize="18sp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="12dp">
+
+                <Button
+                    android:id="@+id/diaAnterior"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="48dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:minWidth="0dp"
+                    android:padding="0dp"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="28sp"
+                    android:text="‹"
+                    android:contentDescription="Dia anterior" />
+
+                <Button
+                    android:id="@+id/escolherData"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:minWidth="0dp"
+                    android:padding="0dp"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:layout_weight="1"
+                    android:drawableEnd="@android:drawable/ic_menu_my_calendar"
+                    android:contentDescription="Escolher data no calendário" />
+
+                <Button
+                    android:id="@+id/proximoDia"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="48dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:minWidth="0dp"
+                    android:padding="0dp"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="28sp"
+                    android:text="›"
+                    android:contentDescription="Próximo dia" />
+
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/textProgresso"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:text="Nenhuma tarefa para hoje"
+                android:text="Progresso do dia"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp" />
 
@@ -68,10 +112,18 @@
                 android:progressBackgroundTint="#444444" />
 
             <TextView
+                android:id="@+id/textResumo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#DDDDDD"
+                android:textSize="14sp" />
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
-                android:text="Tarefas de hoje"
+                android:text="Tarefas do dia"
                 android:textColor="#FFFFFF"
                 android:textSize="24sp"
                 android:textStyle="bold" />
@@ -81,7 +133,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Nenhuma tarefa para hoje."
+                android:text="Nenhuma tarefa neste dia."
                 android:textColor="#BBBBBB"
                 android:textSize="18sp" />
 
