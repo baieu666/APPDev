@@ -19,7 +19,8 @@ import java.util.concurrent.Executors;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.graphics.Color;
-import android.text.format.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import android.widget.LinearLayout;
 import androidx.appcompat.app.AlertDialog;
 import java.util.Calendar;
@@ -35,6 +36,12 @@ public class MainActivity extends AppCompatActivity {
 
     private final ExecutorService executor =
             Executors.newSingleThreadExecutor();
+
+    private static final Locale PORTUGUES_BRASIL = Locale.forLanguageTag("pt-BR");
+
+    private String formatar(long instante, String formato) {
+        return new SimpleDateFormat(formato, PORTUGUES_BRASIL).format(new Date(instante));
+    }
 
     private BancoLocal banco;
     private EditText editNome;
@@ -198,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.escolherData).setOnClickListener(v -> abrirCalendario());
 
         Button adicionar = findViewById(R.id.btnAdicionarTarefa);
-        adicionar.setOnClickListener(view -> abrirNovaTarefa());
+        adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
     }
@@ -262,8 +269,7 @@ public class MainActivity extends AppCompatActivity {
         long fim = dia.getTimeInMillis();
         int consulta = ++consultaAtual;
         Button data = findViewById(R.id.escolherData);
-        String rotulo = java.text.DateFormat.getDateInstance(java.text.DateFormat.LONG)
-                .format(new Date(inicio));
+        String rotulo = formatar(inicio, "d 'de' MMMM 'de' yyyy");
         data.setText(rotulo);
         data.setContentDescription("Escolher data no calendário: " + rotulo);
         TextView resumo = findViewById(R.id.textResumo);
@@ -311,8 +317,7 @@ public class MainActivity extends AppCompatActivity {
 
                         titulo.setText(tarefa.nome);
 
-                        String hora = DateFormat.getTimeFormat(this)
-                                .format(new Date(tarefa.prazo));
+                        String hora = formatar(tarefa.prazo, "HH:mm");
 
                         horario.setText("Horário limite: " + hora);
 
@@ -358,6 +363,14 @@ public class MainActivity extends AppCompatActivity {
                             return true;
                         };
 
+                        View.OnClickListener editar = view -> abrirFormulario(tarefa);
+                        View botaoEditar = item.findViewById(R.id.btnEditarTarefa);
+                        botaoEditar.setContentDescription("Editar " + tarefa.nome);
+                        botaoEditar.setOnClickListener(editar);
+                        item.setOnClickListener(editar);
+                        titulo.setOnClickListener(editar);
+                        horario.setOnClickListener(editar);
+                        status.setOnClickListener(editar);
                         item.setOnLongClickListener(acaoExcluir);
                         titulo.setOnLongClickListener(acaoExcluir);
                         horario.setOnLongClickListener(acaoExcluir);
@@ -390,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void abrirNovaTarefa() {
+    private void abrirFormulario(BancoLocal.Tarefa existente) {
         View formulario = getLayoutInflater().inflate(
                 R.layout.dialog_nova_tarefa,
                 null
@@ -401,19 +414,23 @@ public class MainActivity extends AppCompatActivity {
         Button botaoHora = formulario.findViewById(R.id.btnHoraTarefa);
 
         Calendar prazo = Calendar.getInstance();
-        prazo.add(Calendar.HOUR_OF_DAY, 1);
-        Calendar dataBase = diaSelecionado();
-        prazo.set(dataBase.get(Calendar.YEAR), dataBase.get(Calendar.MONTH),
-                dataBase.get(Calendar.DAY_OF_MONTH));
-        prazo.set(Calendar.SECOND, 0);
-        prazo.set(Calendar.MILLISECOND, 0);
+        if (existente == null) {
+            prazo.add(Calendar.HOUR_OF_DAY, 1);
+            Calendar dataBase = diaSelecionado();
+            prazo.set(dataBase.get(Calendar.YEAR), dataBase.get(Calendar.MONTH),
+                    dataBase.get(Calendar.DAY_OF_MONTH));
+            prazo.set(Calendar.SECOND, 0);
+            prazo.set(Calendar.MILLISECOND, 0);
+        } else {
+            prazo.setTimeInMillis(existente.prazo);
+            nomeTarefa.setText(existente.nome);
+            nomeTarefa.setSelection(nomeTarefa.length());
+        }
 
         Runnable atualizarBotoes = () -> {
-            String data = DateFormat.getDateFormat(this)
-                    .format(prazo.getTime());
+            String data = formatar(prazo.getTimeInMillis(), "dd/MM/yyyy");
 
-            String hora = DateFormat.getTimeFormat(this)
-                    .format(prazo.getTime());
+            String hora = formatar(prazo.getTimeInMillis(), "HH:mm");
 
             botaoData.setText("Data: " + data);
             botaoHora.setText("Horário limite: " + hora);
@@ -448,14 +465,14 @@ public class MainActivity extends AppCompatActivity {
                     },
                     prazo.get(Calendar.HOUR_OF_DAY),
                     prazo.get(Calendar.MINUTE),
-                    DateFormat.is24HourFormat(this)
+                    true
             );
 
             relogio.show();
         });
 
         AlertDialog janela = new AlertDialog.Builder(this)
-                .setTitle("Nova tarefa")
+                .setTitle(existente == null ? "Nova tarefa" : "Editar tarefa")
                 .setView(formulario)
                 .setNegativeButton("Cancelar", null)
                 .setPositiveButton("Salvar", null)
@@ -485,14 +502,17 @@ public class MainActivity extends AppCompatActivity {
 
                 executor.execute(() -> {
                     try {
-                        banco.salvarTarefa(nome, horarioEscolhido);
+                        if (existente == null) {
+                            banco.salvarTarefa(nome, horarioEscolhido);
+                        } else {
+                            banco.editarTarefa(existente.id, nome, horarioEscolhido);
+                        }
 
                         atualizarTela(() -> {
                             janela.dismiss();
                             carregarTarefasDoDia();
 
-                            String data = DateFormat.getDateFormat(this)
-                                    .format(new Date(horarioEscolhido));
+                            String data = formatar(horarioEscolhido, "dd/MM/yyyy");
 
                             avisar("Tarefa salva para " + data + ".");
                         });

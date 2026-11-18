@@ -83,6 +83,16 @@ public class BancoLocal extends SQLiteOpenHelper {
         getWritableDatabase().insertOrThrow("tarefas", null, dados);
     }
 
+    public void editarTarefa(long id, String nome, long prazo) {
+        ContentValues dados = new ContentValues();
+        dados.put("nome", nome);
+        dados.put("prazo", prazo);
+        if (getWritableDatabase().update("tarefas", dados, "id = ?",
+                new String[]{String.valueOf(id)}) != 1) {
+            throw new IllegalStateException("Tarefa não encontrada.");
+        }
+    }
+
     public void atualizarConclusao(long id, boolean concluida) {
         ContentValues dados = new ContentValues();
         dados.put("concluida", concluida ? 1 : 0);

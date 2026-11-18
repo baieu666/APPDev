@@ -4,6 +4,10 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
+    android:layout_marginBottom="8dp"
+    android:background="#171717"
+    android:paddingEnd="8dp"
+    android:paddingStart="4dp"
     android:paddingTop="12dp"
     android:paddingBottom="12dp">
 
@@ -45,5 +49,16 @@
             android:textSize="14sp" />
 
     </LinearLayout>
+
+    <Button
+        android:id="@+id/btnEditarTarefa"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="56dp"
+        android:minHeight="48dp"
+        android:text="Editar"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
 
 </LinearLayout>
