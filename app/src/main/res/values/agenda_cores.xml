@@ -1,0 +1,11 @@
+<resources>
+    <color name="agenda_fundo">#101713</color>
+    <color name="agenda_painel">#1A231E</color>
+    <color name="agenda_borda">#38483D</color>
+    <color name="agenda_verde">#ACEDAF</color>
+    <color name="agenda_destaque">#263C2D</color>
+    <color name="texto_secundario">#C2CEC4</color>
+    <color name="prioridade_alta">#FFCF88</color>
+    <color name="agenda_tinta">#102116</color>
+    <color name="agenda_atrasada">#FFA998</color>
+</resources>

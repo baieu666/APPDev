@@ -6,4 +6,13 @@
     <string name="remover_foto">Remover foto</string>
     <string name="alterar_foto">Alterar foto de perfil</string>
     <string name="erro_foto">Não foi possível abrir a foto. Tente outra imagem.</string>
+    <string name="prioridade">Prioridade</string>
+    <string name="rotulo_prioridade">Prioridade: %1$s</string>
+    <string name="salvar_e_adicionar">Salvar e adicionar outra</string>
+    <string name="progresso_dia">Progresso do dia</string>
+    <string-array name="niveis_prioridade">
+        <item>Baixa</item>
+        <item>Normal</item>
+        <item>Alta</item>
+    </string-array>
 </resources>

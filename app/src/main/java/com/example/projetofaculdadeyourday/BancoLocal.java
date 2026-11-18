@@ -12,7 +12,7 @@ import java.util.List;
 public class BancoLocal extends SQLiteOpenHelper {
 
     public BancoLocal(Context context) {
-        super(context.getApplicationContext(), "your_day.db", null, 3);
+        super(context.getApplicationContext(), "your_day.db", null, 4);
     }
 
     @Override
@@ -32,7 +32,8 @@ public class BancoLocal extends SQLiteOpenHelper {
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "nome TEXT NOT NULL, " +
                         "prazo INTEGER NOT NULL, " +
-                        "concluida INTEGER NOT NULL DEFAULT 0)"
+                        "concluida INTEGER NOT NULL DEFAULT 0, " +
+                        "prioridade INTEGER NOT NULL DEFAULT 1)"
         );
     }
 
@@ -40,11 +41,16 @@ public class BancoLocal extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 2) {
             criarTabelaTarefas(db);
-        } else if (oldVersion < 3) {
+            return;
+        }
+        if (oldVersion < 3) {
             db.execSQL(
                     "ALTER TABLE tarefas " +
                             "ADD COLUMN concluida INTEGER NOT NULL DEFAULT 0"
             );
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE tarefas ADD COLUMN prioridade INTEGER NOT NULL DEFAULT 1");
         }
     }
 
@@ -74,19 +80,21 @@ public class BancoLocal extends SQLiteOpenHelper {
         }
     }
 
-    public void salvarTarefa(String nome, long prazo) {
+    public void salvarTarefa(String nome, long prazo, int prioridade) {
         ContentValues dados = new ContentValues();
         dados.put("nome", nome);
         dados.put("prazo", prazo);
+        dados.put("prioridade", prioridade);
         dados.put("concluida", 0);
 
         getWritableDatabase().insertOrThrow("tarefas", null, dados);
     }
 
-    public void editarTarefa(long id, String nome, long prazo) {
+    public void editarTarefa(long id, String nome, long prazo, int prioridade) {
         ContentValues dados = new ContentValues();
         dados.put("nome", nome);
         dados.put("prazo", prazo);
+        dados.put("prioridade", prioridade);
         if (getWritableDatabase().update("tarefas", dados, "id = ?",
                 new String[]{String.valueOf(id)}) != 1) {
             throw new IllegalStateException("Tarefa não encontrada.");
@@ -114,19 +122,20 @@ public class BancoLocal extends SQLiteOpenHelper {
 
         try (Cursor cursor = getReadableDatabase().query(
                 "tarefas",
-                new String[]{"id", "nome", "prazo", "concluida"},
+                new String[]{"id", "nome", "prazo", "concluida", "prioridade"},
                 "prazo >= ? AND prazo < ?",
                 new String[]{String.valueOf(inicio), String.valueOf(fim)},
                 null,
                 null,
-                "concluida ASC, prazo ASC, id ASC"
+                "concluida ASC, prioridade DESC, prazo ASC, id ASC"
         )) {
             while (cursor.moveToNext()) {
                 tarefas.add(new Tarefa(
                         cursor.getLong(0),
                         cursor.getString(1),
                         cursor.getLong(2),
-                        cursor.getInt(3) == 1
+                        cursor.getInt(3) == 1,
+                        cursor.getInt(4)
                 ));
             }
         }
@@ -153,8 +162,10 @@ public class BancoLocal extends SQLiteOpenHelper {
         public final String nome;
         public final long prazo;
         public final boolean concluida;
+        public final int prioridade;
 
-        public Tarefa(long id, String nome, long prazo, boolean concluida) {
+        public Tarefa(long id, String nome, long prazo, boolean concluida, int prioridade) {
+            this.prioridade = prioridade;
             this.id = id;
             this.nome = nome;
             this.prazo = prazo;

@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.graphics.Color;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import android.widget.LinearLayout;
@@ -32,9 +31,9 @@ import androidx.appcompat.app.AlertDialog;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import android.content.res.ColorStateList;
 import android.widget.CheckBox;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -334,7 +333,7 @@ public class MainActivity extends AppCompatActivity {
         if (inicio != diaDaLista) {
             lista.removeAllViews();
             mensagem.setVisibility(View.GONE);
-            textoProgresso.setText("Progresso do dia");
+            textoProgresso.setText("—");
             resumo.setText("");
             barra.setProgress(0);
             barra.setContentDescription("Carregando progresso");
@@ -355,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
                             tarefas.isEmpty() ? View.VISIBLE : View.GONE
                     );
 
+                    String[] niveis = getResources().getStringArray(R.array.niveis_prioridade);
                     int concluidas = 0;
 
                     for (BancoLocal.Tarefa tarefa : tarefas) {
@@ -374,6 +374,10 @@ public class MainActivity extends AppCompatActivity {
                         TextView status = item.findViewById(R.id.textStatusTarefa);
 
                         titulo.setText(tarefa.nome);
+                        TextView prioridade = item.findViewById(R.id.textPrioridade);
+                        prioridade.setText(getString(R.string.rotulo_prioridade, niveis[tarefa.prioridade]));
+                        prioridade.setTextColor(getColor(tarefa.prioridade == 2
+                                ? R.color.prioridade_alta : R.color.texto_secundario));
 
                         String hora = formatar(tarefa.prazo, "HH:mm");
 
@@ -442,7 +446,7 @@ public class MainActivity extends AppCompatActivity {
                     int porcentagem = total == 0 ? 0 : Math.round(concluidas * 100f / total);
                     int restantes = total - concluidas;
                     barra.setProgress(porcentagem);
-                    textoProgresso.setText("Progresso do dia  ·  " + porcentagem + "%");
+                    textoProgresso.setText(porcentagem + "%");
                     resumo.setText(concluidas + (concluidas == 1 ? " concluída" : " concluídas")
                             + "    ·    " + restantes + (restantes == 1 ? " restante" : " restantes"));
                     barra.setContentDescription(porcentagem + "% das tarefas concluídas");
@@ -470,6 +474,11 @@ public class MainActivity extends AppCompatActivity {
         EditText nomeTarefa = formulario.findViewById(R.id.editNomeTarefa);
         Button botaoData = formulario.findViewById(R.id.btnDataTarefa);
         Button botaoHora = formulario.findViewById(R.id.btnHoraTarefa);
+
+        Spinner prioridade = formulario.findViewById(R.id.prioridade);
+        prioridade.setSelection(existente == null ? 1 : existente.prioridade);
+        Button adicionarOutra = formulario.findViewById(R.id.adicionarOutra);
+        adicionarOutra.setVisibility(existente == null ? View.VISIBLE : View.GONE);
 
         Calendar prazo = Calendar.getInstance();
         if (existente == null) {
@@ -540,7 +549,17 @@ public class MainActivity extends AppCompatActivity {
             Button salvar = janela.getButton(AlertDialog.BUTTON_POSITIVE);
             Button cancelar = janela.getButton(AlertDialog.BUTTON_NEGATIVE);
 
-            salvar.setOnClickListener(view -> {
+            java.util.function.Consumer<Boolean> habilitar = ativo -> {
+                salvar.setEnabled(ativo);
+                cancelar.setEnabled(ativo);
+                nomeTarefa.setEnabled(ativo);
+                botaoData.setEnabled(ativo);
+                botaoHora.setEnabled(ativo);
+                adicionarOutra.setEnabled(ativo);
+                prioridade.setEnabled(ativo);
+                janela.setCancelable(ativo);
+            };
+            View.OnClickListener gravar = view -> {
                 String nome = nomeTarefa.getText().toString().trim();
 
                 if (nome.isEmpty()) {
@@ -551,23 +570,27 @@ public class MainActivity extends AppCompatActivity {
 
                 long horarioEscolhido = prazo.getTimeInMillis();
 
-                salvar.setEnabled(false);
-                cancelar.setEnabled(false);
-                nomeTarefa.setEnabled(false);
-                botaoData.setEnabled(false);
-                botaoHora.setEnabled(false);
-                janela.setCancelable(false);
+                int nivel = prioridade.getSelectedItemPosition();
+                boolean continuar = view == adicionarOutra;
+                habilitar.accept(false);
 
                 executor.execute(() -> {
                     try {
                         if (existente == null) {
-                            banco.salvarTarefa(nome, horarioEscolhido);
+                            banco.salvarTarefa(nome, horarioEscolhido, nivel);
                         } else {
-                            banco.editarTarefa(existente.id, nome, horarioEscolhido);
+                            banco.editarTarefa(existente.id, nome, horarioEscolhido, nivel);
                         }
 
                         atualizarTela(() -> {
-                            janela.dismiss();
+                            if (continuar) {
+                                nomeTarefa.setText("");
+                                prioridade.setSelection(1);
+                                habilitar.accept(true);
+                                nomeTarefa.requestFocus();
+                            } else {
+                                janela.dismiss();
+                            }
                             carregarTarefasDoDia();
 
                             String data = formatar(horarioEscolhido, "dd/MM/yyyy");
@@ -579,18 +602,14 @@ public class MainActivity extends AppCompatActivity {
                         Log.e("YourDay", "Erro ao salvar tarefa", erro);
 
                         atualizarTela(() -> {
-                            salvar.setEnabled(true);
-                            cancelar.setEnabled(true);
-                            nomeTarefa.setEnabled(true);
-                            botaoData.setEnabled(true);
-                            botaoHora.setEnabled(true);
-                            janela.setCancelable(true);
-
+                            habilitar.accept(true);
                             avisar("Não foi possível salvar. Tente novamente.");
                         });
                     }
                 });
-            });
+            };
+            salvar.setOnClickListener(gravar);
+            adicionarOutra.setOnClickListener(gravar);
         });
 
         janela.show();
@@ -605,9 +624,7 @@ public class MainActivity extends AppCompatActivity {
 
         BancoLocal.Tarefa tarefa = (BancoLocal.Tarefa) dados;
 
-        TextView titulo = item.findViewById(R.id.textNomeTarefa);
         TextView status = item.findViewById(R.id.textStatusTarefa);
-        CheckBox checkbox = item.findViewById(R.id.checkTarefa);
 
         long agora = System.currentTimeMillis();
         long tempoRestante = tarefa.prazo - agora;
@@ -617,26 +634,24 @@ public class MainActivity extends AppCompatActivity {
         String descricao;
 
         if (tarefa.concluida) {
-            cor = Color.rgb(0, 200, 83);
+            cor = R.color.agenda_verde;
             descricao = "Concluída";
 
         } else if (tempoRestante <= 0) {
-            cor = Color.rgb(255, 82, 82);
+            cor = R.color.agenda_atrasada;
             descricao = "Atrasada";
 
         } else if (tempoRestante <= quinzeMinutos) {
-            cor = Color.rgb(255, 214, 0);
+            cor = R.color.prioridade_alta;
             descricao = "Perto do prazo";
 
         } else {
-            cor = Color.WHITE;
+            cor = R.color.texto_secundario;
             descricao = "Pendente";
         }
 
-        titulo.setTextColor(cor);
         status.setText(descricao);
-        status.setTextColor(cor);
-        checkbox.setButtonTintList(ColorStateList.valueOf(cor));
+        status.setTextColor(getColor(cor));
     }
 
     private void confirmarExclusao(BancoLocal.Tarefa tarefa) {
