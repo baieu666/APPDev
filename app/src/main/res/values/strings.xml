@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Projeto Faculdade \'\'Your Day\'\'</string>
+    <string name="escolher_foto">Escolher foto de perfil</string>
+    <string name="foto_perfil">Foto de perfil</string>
+    <string name="trocar_foto">Trocar foto</string>
+    <string name="remover_foto">Remover foto</string>
+    <string name="alterar_foto">Alterar foto de perfil</string>
+    <string name="erro_foto">Não foi possível abrir a foto. Tente outra imagem.</string>
 </resources>

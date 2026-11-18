@@ -1,6 +1,12 @@
 package com.example.projetofaculdadeyourday;
 
 import android.os.Bundle;
+import android.graphics.Bitmap;
+import android.widget.ImageView;
+import android.net.Uri;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import java.io.IOException;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -42,6 +48,12 @@ public class MainActivity extends AppCompatActivity {
     private String formatar(long instante, String formato) {
         return new SimpleDateFormat(formato, PORTUGUES_BRASIL).format(new Date(instante));
     }
+
+    private FotoPerfil fotos;
+    private final ActivityResultLauncher<String> escolherFoto = registerForActivityResult(
+            new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) atualizarFoto(uri, false);
+            });
 
     private BancoLocal banco;
     private EditText editNome;
@@ -120,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         EdgeToEdge.enable(this);
         banco = new BancoLocal(this);
+        fotos = new FotoPerfil(this);
 
         mostrarEntrada();
         habilitarEntrada(false);
@@ -200,6 +213,7 @@ public class MainActivity extends AppCompatActivity {
         TextView saudacao = findViewById(R.id.textSaudacao);
         saudacao.setText("Olá, " + nome + "!");
 
+        configurarFotoPerfil(nome);
         findViewById(R.id.diaAnterior).setOnClickListener(v -> moverDia(-1));
         findViewById(R.id.proximoDia).setOnClickListener(v -> moverDia(1));
         findViewById(R.id.escolherData).setOnClickListener(v -> abrirCalendario());
@@ -208,6 +222,50 @@ public class MainActivity extends AppCompatActivity {
         adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
+    }
+
+    private void configurarFotoPerfil(String nome) {
+        TextView inicial = findViewById(R.id.inicialPerfil);
+        inicial.setText(nome.isEmpty() ? "?" :
+                nome.substring(0, nome.offsetByCodePoints(0, 1)).toUpperCase(PORTUGUES_BRASIL));
+        View avatar = findViewById(R.id.editarFoto);
+        avatar.setClipToOutline(true);
+        avatar.setOnClickListener(v -> {
+            if (findViewById(R.id.fotoPerfil).getVisibility() != View.VISIBLE) {
+                escolherFoto.launch("image/*");
+                return;
+            }
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.foto_perfil)
+                    .setItems(new String[]{getString(R.string.trocar_foto), getString(R.string.remover_foto)},
+                            (dialog, opcao) -> {
+                                if (opcao == 0) escolherFoto.launch("image/*");
+                                else atualizarFoto(null, true);
+                            })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        });
+        atualizarFoto(null, false);
+    }
+
+    private void atualizarFoto(Uri origem, boolean remover) {
+        FotoPerfil.FILA.execute(() -> {
+            try {
+                if (remover) fotos.remover();
+                Bitmap bitmap = origem == null ? fotos.carregar() : fotos.salvar(origem);
+                atualizarTela(() -> {
+                    ImageView foto = findViewById(R.id.fotoPerfil);
+                    if (foto == null) return;
+                    foto.setImageBitmap(bitmap);
+                    foto.setVisibility(bitmap == null ? View.GONE : View.VISIBLE);
+                    findViewById(R.id.editarFoto).setContentDescription(getString(
+                            bitmap == null ? R.string.escolher_foto : R.string.alterar_foto));
+                });
+            } catch (IOException | RuntimeException erro) {
+                Log.w("YourDay", "Falha ao acessar foto de perfil", erro);
+                atualizarTela(() -> avisar(getString(R.string.erro_foto)));
+            }
+        });
     }
 
     private void habilitarEntrada(boolean habilitada) {
