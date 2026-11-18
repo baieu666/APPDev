@@ -587,15 +587,11 @@ public class MainActivity extends AppCompatActivity {
         Button adicionarOutra = formulario.findViewById(R.id.adicionarOutra);
         adicionarOutra.setVisibility(existente == null ? View.VISIBLE : View.GONE);
 
-        Calendar prazo = Calendar.getInstance();
+        Calendar prazo;
         if (existente == null) {
-            prazo.add(Calendar.HOUR_OF_DAY, 1);
-            Calendar dataBase = diaSelecionado();
-            prazo.set(dataBase.get(Calendar.YEAR), dataBase.get(Calendar.MONTH),
-                    dataBase.get(Calendar.DAY_OF_MONTH));
-            prazo.set(Calendar.SECOND, 0);
-            prazo.set(Calendar.MILLISECOND, 0);
+            prazo = PrazoDaAgenda.sugerir(Calendar.getInstance(), diaSelecionado());
         } else {
+            prazo = Calendar.getInstance();
             prazo.setTimeInMillis(existente.prazo);
             nomeTarefa.setText(existente.nome);
             nomeTarefa.setSelection(nomeTarefa.length());
