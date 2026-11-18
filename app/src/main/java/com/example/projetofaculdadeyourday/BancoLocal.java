@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +13,11 @@ import java.util.List;
 public class BancoLocal extends SQLiteOpenHelper {
 
     public BancoLocal(Context context) {
-        super(context.getApplicationContext(), "your_day.db", null, 4);
+        this(context, "your_day.db");
+    }
+
+    BancoLocal(Context context, String arquivo) {
+        super(context.getApplicationContext(), arquivo, null, 5);
     }
 
     @Override
@@ -33,7 +38,8 @@ public class BancoLocal extends SQLiteOpenHelper {
                         "nome TEXT NOT NULL, " +
                         "prazo INTEGER NOT NULL, " +
                         "concluida INTEGER NOT NULL DEFAULT 0, " +
-                        "prioridade INTEGER NOT NULL DEFAULT 1)"
+                        "prioridade INTEGER NOT NULL DEFAULT 1, " +
+                        "lembrete_enviado INTEGER NOT NULL DEFAULT 0)"
         );
     }
 
@@ -51,6 +57,9 @@ public class BancoLocal extends SQLiteOpenHelper {
         }
         if (oldVersion < 4) {
             db.execSQL("ALTER TABLE tarefas ADD COLUMN prioridade INTEGER NOT NULL DEFAULT 1");
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE tarefas ADD COLUMN lembrete_enviado INTEGER NOT NULL DEFAULT 0");
         }
     }
 
@@ -86,18 +95,25 @@ public class BancoLocal extends SQLiteOpenHelper {
         dados.put("prazo", prazo);
         dados.put("prioridade", prioridade);
         dados.put("concluida", 0);
+        dados.put("lembrete_enviado", prazo <= System.currentTimeMillis() ? 1 : 0);
 
         getWritableDatabase().insertOrThrow("tarefas", null, dados);
     }
 
     public void editarTarefa(long id, String nome, long prazo, int prioridade) {
-        ContentValues dados = new ContentValues();
-        dados.put("nome", nome);
-        dados.put("prazo", prazo);
-        dados.put("prioridade", prioridade);
-        if (getWritableDatabase().update("tarefas", dados, "id = ?",
-                new String[]{String.valueOf(id)}) != 1) {
-            throw new IllegalStateException("Tarefa não encontrada.");
+        try (SQLiteStatement comando = getWritableDatabase().compileStatement(
+                "UPDATE tarefas SET nome = ?, prioridade = ?, " +
+                "lembrete_enviado = CASE WHEN prazo = ? THEN lembrete_enviado ELSE ? END, " +
+                "prazo = ? WHERE id = ?")) {
+            comando.bindString(1, nome);
+            comando.bindLong(2, prioridade);
+            comando.bindLong(3, prazo);
+            comando.bindLong(4, prazo <= System.currentTimeMillis() ? 1 : 0);
+            comando.bindLong(5, prazo);
+            comando.bindLong(6, id);
+            if (comando.executeUpdateDelete() != 1) {
+                throw new IllegalStateException("Tarefa não encontrada.");
+            }
         }
     }
 
@@ -130,17 +146,49 @@ public class BancoLocal extends SQLiteOpenHelper {
                 "concluida ASC, prioridade DESC, prazo ASC, id ASC"
         )) {
             while (cursor.moveToNext()) {
-                tarefas.add(new Tarefa(
-                        cursor.getLong(0),
-                        cursor.getString(1),
-                        cursor.getLong(2),
-                        cursor.getInt(3) == 1,
-                        cursor.getInt(4)
-                ));
+                tarefas.add(lerTarefa(cursor));
             }
         }
 
         return tarefas;
+    }
+
+    private Tarefa lerTarefa(Cursor cursor) {
+        return new Tarefa(cursor.getLong(0), cursor.getString(1), cursor.getLong(2),
+                cursor.getInt(3) == 1, cursor.getInt(4));
+    }
+
+    // A data de ativação evita alertar tarefas que já venceram antes da adesão.
+    private static final String LEMBRETE_PENDENTE =
+            "concluida = 0 AND lembrete_enviado = 0 AND prazo >= ?";
+
+    public long proximoPrazo(long desde) {
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT MIN(prazo) FROM tarefas WHERE " + LEMBRETE_PENDENTE,
+                new String[]{String.valueOf(desde)})) {
+            cursor.moveToFirst();
+            return cursor.isNull(0) ? -1L : cursor.getLong(0);
+        }
+    }
+
+    public List<Tarefa> lembretesVencidos(long desde, long agora) {
+        List<Tarefa> tarefas = new ArrayList<>();
+        try (Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT id, nome, prazo, concluida, prioridade FROM tarefas WHERE " +
+                LEMBRETE_PENDENTE + " AND prazo <= ? ORDER BY prazo, id",
+                new String[]{String.valueOf(desde), String.valueOf(agora)})) {
+            while (cursor.moveToNext()) {
+                tarefas.add(lerTarefa(cursor));
+            }
+        }
+        return tarefas;
+    }
+
+    public void marcarLembreteEnviado(Tarefa tarefa) {
+        ContentValues dados = new ContentValues();
+        dados.put("lembrete_enviado", 1);
+        getWritableDatabase().update("tarefas", dados, "id = ? AND prazo = ?",
+                new String[]{String.valueOf(tarefa.id), String.valueOf(tarefa.prazo)});
     }
 
     public void excluirTarefa(long id) {
