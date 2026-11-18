@@ -43,7 +43,47 @@ public class MainActivity extends AppCompatActivity {
     private final Handler atualizadorStatus =
             new Handler(Looper.getMainLooper());
 
+    // O valor sentinela acompanha o dia atual, inclusive na virada da meia-noite.
+    private long dataEscolhida = Long.MIN_VALUE;
     private long diaDaLista = -1L;
+    private int consultaAtual;
+
+    private Calendar diaSelecionado() {
+        Calendar dia = Calendar.getInstance();
+        if (dataEscolhida != Long.MIN_VALUE) dia.setTimeInMillis(dataEscolhida);
+        dia.set(Calendar.HOUR_OF_DAY, 0);
+        dia.set(Calendar.MINUTE, 0);
+        dia.set(Calendar.SECOND, 0);
+        dia.set(Calendar.MILLISECOND, 0);
+        return dia;
+    }
+
+    private void selecionarDia(Calendar dia) {
+        dataEscolhida = android.text.format.DateUtils.isToday(dia.getTimeInMillis())
+                ? Long.MIN_VALUE : dia.getTimeInMillis();
+        carregarTarefasDoDia();
+    }
+
+    private void moverDia(int deslocamento) {
+        Calendar dia = diaSelecionado();
+        dia.add(Calendar.DAY_OF_MONTH, deslocamento);
+        selecionarDia(dia);
+    }
+
+    private void abrirCalendario() {
+        Calendar dia = diaSelecionado();
+        new DatePickerDialog(this, (view, ano, mes, numero) -> {
+            dia.set(ano, mes, numero);
+            selecionarDia(dia);
+        }, dia.get(Calendar.YEAR), dia.get(Calendar.MONTH),
+                dia.get(Calendar.DAY_OF_MONTH)).show();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle estado) {
+        super.onSaveInstanceState(estado);
+        estado.putLong("dataEscolhida", dataEscolhida);
+    }
 
     private final Runnable atualizarRelogio = new Runnable() {
         @Override
@@ -51,15 +91,8 @@ public class MainActivity extends AppCompatActivity {
             LinearLayout lista = findViewById(R.id.listaTarefas);
 
             if (lista != null) {
-                Calendar hoje = Calendar.getInstance();
-                hoje.set(Calendar.HOUR_OF_DAY, 0);
-                hoje.set(Calendar.MINUTE, 0);
-                hoje.set(Calendar.SECOND, 0);
-                hoje.set(Calendar.MILLISECOND, 0);
-
-                if (diaDaLista != hoje.getTimeInMillis()) {
-                    // Se mudou o dia, busca as tarefas da nova data.
-                    carregarTarefasHoje();
+                if (diaDaLista != diaSelecionado().getTimeInMillis()) {
+                    carregarTarefasDoDia();
                 } else {
                     // Atualiza as cores sem reconstruir a lista.
                     for (int i = 0; i < lista.getChildCount(); i++) {
@@ -75,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (savedInstanceState != null) dataEscolhida = savedInstanceState.getLong("dataEscolhida", Long.MIN_VALUE);
 
         EdgeToEdge.enable(this);
         banco = new BancoLocal(this);
@@ -158,10 +193,14 @@ public class MainActivity extends AppCompatActivity {
         TextView saudacao = findViewById(R.id.textSaudacao);
         saudacao.setText("Olá, " + nome + "!");
 
+        findViewById(R.id.diaAnterior).setOnClickListener(v -> moverDia(-1));
+        findViewById(R.id.proximoDia).setOnClickListener(v -> moverDia(1));
+        findViewById(R.id.escolherData).setOnClickListener(v -> abrirCalendario());
+
         Button adicionar = findViewById(R.id.btnAdicionarTarefa);
         adicionar.setOnClickListener(view -> abrirNovaTarefa());
 
-        carregarTarefasHoje();
+        carregarTarefasDoDia();
     }
 
     private void habilitarEntrada(boolean habilitada) {
@@ -211,22 +250,32 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show();
     }
 
-    private void carregarTarefasHoje() {
+    private void carregarTarefasDoDia() {
         LinearLayout lista = findViewById(R.id.listaTarefas);
         TextView mensagem = findViewById(R.id.textSemTarefas);
         TextView textoProgresso = findViewById(R.id.textProgresso);
         ProgressBar barra = findViewById(R.id.barraProgresso);
 
-        Calendar hoje = Calendar.getInstance();
-        hoje.set(Calendar.HOUR_OF_DAY, 0);
-        hoje.set(Calendar.MINUTE, 0);
-        hoje.set(Calendar.SECOND, 0);
-        hoje.set(Calendar.MILLISECOND, 0);
-
-        long inicio = hoje.getTimeInMillis();
-
-        hoje.add(Calendar.DAY_OF_MONTH, 1);
-        long fim = hoje.getTimeInMillis();
+        Calendar dia = diaSelecionado();
+        long inicio = dia.getTimeInMillis();
+        dia.add(Calendar.DAY_OF_MONTH, 1);
+        long fim = dia.getTimeInMillis();
+        int consulta = ++consultaAtual;
+        Button data = findViewById(R.id.escolherData);
+        String rotulo = java.text.DateFormat.getDateInstance(java.text.DateFormat.LONG)
+                .format(new Date(inicio));
+        data.setText(rotulo);
+        data.setContentDescription("Escolher data no calendário: " + rotulo);
+        TextView resumo = findViewById(R.id.textResumo);
+        if (inicio != diaDaLista) {
+            lista.removeAllViews();
+            mensagem.setVisibility(View.GONE);
+            textoProgresso.setText("Progresso do dia");
+            resumo.setText("");
+            barra.setProgress(0);
+            barra.setContentDescription("Carregando progresso");
+        }
+        diaDaLista = inicio;
 
         executor.execute(() -> {
             try {
@@ -234,10 +283,10 @@ public class MainActivity extends AppCompatActivity {
                         banco.buscarTarefas(inicio, fim);
 
                 atualizarTela(() -> {
-                    diaDaLista = inicio;
+                    if (consulta != consultaAtual) return;
                     lista.removeAllViews();
 
-                    mensagem.setText("Nenhuma tarefa para hoje.");
+                    mensagem.setText("Nenhuma tarefa neste dia.");
                     mensagem.setVisibility(
                             tarefas.isEmpty() ? View.VISIBLE : View.GONE
                     );
@@ -290,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
                                 try {
                                     banco.atualizarConclusao(tarefa.id, marcada);
 
-                                    atualizarTela(() -> carregarTarefasHoje());
+                                    atualizarTela(() -> carregarTarefasDoDia());
 
                                 } catch (Exception erro) {
                                     Log.e("YourDay", "Erro ao concluir tarefa", erro);
@@ -319,33 +368,20 @@ public class MainActivity extends AppCompatActivity {
 
                     int total = tarefas.size();
 
-                    if (total == 0) {
-                        barra.setProgress(0);
-                        textoProgresso.setText("Nenhuma tarefa para hoje");
-                        barra.setContentDescription("Nenhuma tarefa para hoje");
-                    } else {
-                        int porcentagem = Math.round(
-                                concluidas * 100f / total
-                        );
-
-                        barra.setProgress(porcentagem);
-
-                        textoProgresso.setText(
-                                concluidas + " de " + total
-                                        + " tarefas concluídas • "
-                                        + porcentagem + "%"
-                        );
-
-                        barra.setContentDescription(
-                                porcentagem + "% das tarefas concluídas"
-                        );
-                    }
+                    int porcentagem = total == 0 ? 0 : Math.round(concluidas * 100f / total);
+                    int restantes = total - concluidas;
+                    barra.setProgress(porcentagem);
+                    textoProgresso.setText("Progresso do dia  ·  " + porcentagem + "%");
+                    resumo.setText(concluidas + (concluidas == 1 ? " concluída" : " concluídas")
+                            + "    ·    " + restantes + (restantes == 1 ? " restante" : " restantes"));
+                    barra.setContentDescription(porcentagem + "% das tarefas concluídas");
                 });
 
             } catch (Exception erro) {
                 Log.e("YourDay", "Erro ao carregar tarefas", erro);
 
                 atualizarTela(() -> {
+                    if (consulta != consultaAtual) return;
                     mensagem.setText("Não foi possível carregar as tarefas.");
                     mensagem.setVisibility(View.VISIBLE);
                     avisar("Não foi possível atualizar a lista.");
@@ -366,6 +402,9 @@ public class MainActivity extends AppCompatActivity {
 
         Calendar prazo = Calendar.getInstance();
         prazo.add(Calendar.HOUR_OF_DAY, 1);
+        Calendar dataBase = diaSelecionado();
+        prazo.set(dataBase.get(Calendar.YEAR), dataBase.get(Calendar.MONTH),
+                dataBase.get(Calendar.DAY_OF_MONTH));
         prazo.set(Calendar.SECOND, 0);
         prazo.set(Calendar.MILLISECOND, 0);
 
@@ -450,7 +489,7 @@ public class MainActivity extends AppCompatActivity {
 
                         atualizarTela(() -> {
                             janela.dismiss();
-                            carregarTarefasHoje();
+                            carregarTarefasDoDia();
 
                             String data = DateFormat.getDateFormat(this)
                                     .format(new Date(horarioEscolhido));
@@ -536,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
                             banco.excluirTarefa(tarefa.id);
 
                             atualizarTela(() -> {
-                                carregarTarefasHoje();
+                                carregarTarefasDoDia();
                                 avisar("Tarefa excluída.");
                             });
 
@@ -576,4 +615,3 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 }
-
