@@ -1,6 +1,10 @@
 package com.example.projetofaculdadeyourday;
 
 import android.os.Bundle;
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.provider.Settings;
 import android.graphics.Bitmap;
 import android.widget.ImageView;
 import android.net.Uri;
@@ -56,6 +60,15 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> escolherFoto = registerForActivityResult(
             new ActivityResultContracts.GetContent(), uri -> {
                 if (uri != null) atualizarFoto(uri, false);
+            });
+
+    private final ActivityResultLauncher<String> pedirPermissao = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), concedida -> {
+                if (concedida) {
+                    ativarLembretes();
+                } else {
+                    mostrarAjustesDeNotificacao();
+                }
             });
 
     private BancoLocal banco;
@@ -132,7 +145,11 @@ public class MainActivity extends AppCompatActivity {
         getDelegate().setLocalNightMode(temaSalvo());
         super.onCreate(savedInstanceState);
 
-        if (savedInstanceState != null) dataEscolhida = savedInstanceState.getLong("dataEscolhida", Long.MIN_VALUE);
+        if (savedInstanceState != null) {
+            dataEscolhida = savedInstanceState.getLong("dataEscolhida", Long.MIN_VALUE);
+        } else {
+            usarDiaDoLembrete(getIntent());
+        }
 
         EdgeToEdge.enable(this);
         banco = new BancoLocal(this);
@@ -163,6 +180,23 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void usarDiaDoLembrete(Intent intent) {
+        if (intent.hasExtra(Lembretes.EXTRA_DIA)) {
+            long prazo = intent.getLongExtra(Lembretes.EXTRA_DIA, Long.MIN_VALUE);
+            dataEscolhida = android.text.format.DateUtils.isToday(prazo) ? Long.MIN_VALUE : prazo;
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent.hasExtra(Lembretes.EXTRA_DIA)) {
+            usarDiaDoLembrete(intent);
+            if (findViewById(R.id.listaTarefas) != null) carregarTarefasDoDia();
+        }
     }
 
     private void mostrarEntrada() {
@@ -218,6 +252,8 @@ public class MainActivity extends AppCompatActivity {
         saudacao.setText("Olá, " + nome + "!");
 
         configurarFotoPerfil(nome);
+        findViewById(R.id.configurarLembretes).setOnClickListener(v -> escolherLembretes());
+        atualizarRotuloLembretes();
         findViewById(R.id.escolherTema).setOnClickListener(v -> escolherTema());
         findViewById(R.id.diaAnterior).setOnClickListener(v -> moverDia(-1));
         findViewById(R.id.proximoDia).setOnClickListener(v -> moverDia(1));
@@ -227,6 +263,66 @@ public class MainActivity extends AppCompatActivity {
         adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
+    }
+
+    private void atualizarRotuloLembretes() {
+        Button botao = findViewById(R.id.configurarLembretes);
+        if (botao == null) return;
+        int rotulo = R.string.lembretes_desligados;
+        if (Lembretes.ativos(this)) {
+            rotulo = Lembretes.permitidos(this) ? R.string.lembretes_ligados : R.string.lembretes_bloqueados;
+        }
+        botao.setText(rotulo);
+    }
+
+    private void escolherLembretes() {
+        if (Lembretes.ativos(this)) {
+            AlertDialog.Builder dialogo = new AlertDialog.Builder(this)
+                    .setTitle(R.string.lembretes)
+                    .setMessage(R.string.explicacao_lembretes)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(R.string.desligar, (d, w) -> {
+                        Lembretes.definirAtivos(this, false);
+                        atualizarRotuloLembretes();
+                    });
+            if (!Lembretes.permitidos(this)) {
+                dialogo.setNeutralButton(R.string.abrir_ajustes, (d, w) -> abrirAjustesDeNotificacao());
+            }
+            dialogo.show();
+        } else if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            pedirPermissao.launch(Manifest.permission.POST_NOTIFICATIONS);
+        } else {
+            ativarLembretes();
+        }
+    }
+
+    private void ativarLembretes() {
+        if (!Lembretes.permitidos(this)) {
+            mostrarAjustesDeNotificacao();
+            return;
+        }
+        Lembretes.definirAtivos(this, true);
+        atualizarRotuloLembretes();
+        executor.execute(() -> Lembretes.sincronizar(this, banco, 0));
+    }
+
+    private void mostrarAjustesDeNotificacao() {
+        new AlertDialog.Builder(this)
+                .setMessage(R.string.permitir_lembretes)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.abrir_ajustes, (d, w) -> abrirAjustesDeNotificacao())
+                .show();
+    }
+
+    private void abrirAjustesDeNotificacao() {
+        Intent ajustes = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + getPackageName()));
+        if (Build.VERSION.SDK_INT >= 26) {
+            ajustes = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        }
+        startActivity(ajustes);
     }
 
     private int temaSalvo() {
@@ -433,6 +529,7 @@ public class MainActivity extends AppCompatActivity {
                             executor.execute(() -> {
                                 try {
                                     banco.atualizarConclusao(tarefa.id, marcada);
+                                    Lembretes.sincronizar(this, banco, tarefa.id);
 
                                     atualizarTela(() -> carregarTarefasDoDia());
 
@@ -524,6 +621,7 @@ public class MainActivity extends AppCompatActivity {
             executor.execute(() -> {
                 try {
                     banco.salvarTarefa(tarefa.nome, prazo, tarefa.prioridade);
+                    Lembretes.sincronizar(this, banco, 0);
                     atualizarTela(() -> {
                         selecionarDia(destino);
                         avisar(getString(R.string.tarefa_copiada, formatar(prazo, "dd/MM/yyyy")));
@@ -654,6 +752,7 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             banco.editarTarefa(existente.id, nome, horarioEscolhido, nivel);
                         }
+                        Lembretes.sincronizar(this, banco, existente == null ? 0 : existente.id);
 
                         atualizarTela(() -> {
                             if (continuar) {
@@ -739,6 +838,7 @@ public class MainActivity extends AppCompatActivity {
                     executor.execute(() -> {
                         try {
                             banco.excluirTarefa(tarefa.id);
+                            Lembretes.sincronizar(this, banco, tarefa.id);
 
                             atualizarTela(() -> {
                                 carregarTarefasDoDia();
@@ -760,6 +860,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        atualizarRotuloLembretes();
+        if (Lembretes.ativos(this)) {
+            executor.execute(() -> Lembretes.sincronizar(this, banco, 0));
+        }
 
         atualizadorStatus.removeCallbacks(atualizarRelogio);
         atualizadorStatus.post(atualizarRelogio);

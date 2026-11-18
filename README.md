@@ -11,6 +11,12 @@ Aplicativo Android de organizacao de rotina, desenvolvido em Java e XML como pro
 - Status pendente, perto do prazo (15 minutos), atrasada e concluida.
 - Atualizacao dos status enquanto o aplicativo esta aberto.
 - Exclusao de tarefas com confirmacao por toque longo.
+- Navegação pela agenda com calendário e botões de dia anterior e seguinte.
+- Edição, prioridades e cópia de tarefas entre dias.
+- Foto de perfil opcional e temas claro, escuro ou do sistema.
+- Lembretes locais de prazo, opcionais. Para ligar, toque em **Ativar lembretes de prazo** na agenda e permita as notificações se o Android solicitar. Toque no mesmo controle para desligar.
+
+Os lembretes acompanham as alterações nas tarefas. Ao tocar em um aviso, o aplicativo abre a data da tarefa. O agendamento usa alarmes inexatos do Android, que podem chegar após o horário, especialmente em economia de bateria. Ao reiniciar o aparelho, o app recupera os prazos pendentes. Os dados ficam no próprio dispositivo.
 
 ## Desenvolvimento
 
@@ -29,13 +35,3 @@ Para gerar o APK de teste no PowerShell, na raiz do projeto:
 ```
 
 O arquivo gerado fica em `app/build/outputs/apk/debug/app-debug.apk`.
-
-## Proximas etapas
-
-- Consultar tarefas de outras datas.
-- Editar tarefas existentes.
-- Adicionar foto ou avatar opcional.
-- Implementar notificacoes e opcao para desativar alertas.
-
-As notificacoes em segundo plano ainda nao estao implementadas.
-Os dados ficam no dispositivo; nao ha sincronizacao entre celulares.
