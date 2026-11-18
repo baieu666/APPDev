@@ -2,7 +2,7 @@ name: Validar Your Day
 
 on:
   push:
-    branches: [agenda-por-data]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
