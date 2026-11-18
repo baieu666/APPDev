@@ -8,6 +8,7 @@ Aplicativo Android de organizacao de rotina, desenvolvido em Java e XML como pro
 - Criacao de tarefas com nome, data e horario limite.
 - Listagem das tarefas do dia e marcacao de conclusao.
 - Progresso diario e tarefas concluidas no fim da lista.
+- Filtro em **Tarefas do dia** para mostrar todas as tarefas, apenas as pendentes ou apenas as concluídas. O progresso considera todas as tarefas da data selecionada.
 - Status pendente, perto do prazo (15 minutos), atrasada e concluida.
 - Atualizacao dos status enquanto o aplicativo esta aberto.
 - Exclusao de tarefas com confirmacao por toque longo.

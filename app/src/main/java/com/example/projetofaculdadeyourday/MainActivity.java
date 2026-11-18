@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private long dataEscolhida = Long.MIN_VALUE;
     private long diaDaLista = -1L;
     private int consultaAtual;
+    private int filtro = R.string.filtro_todas;
 
     private Calendar diaSelecionado() {
         Calendar dia = Calendar.getInstance();
@@ -119,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle estado) {
         super.onSaveInstanceState(estado);
         estado.putLong("dataEscolhida", dataEscolhida);
+        estado.putInt("filtro", filtro);
     }
 
     private final Runnable atualizarRelogio = new Runnable() {
@@ -148,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState != null) {
             dataEscolhida = savedInstanceState.getLong("dataEscolhida", Long.MIN_VALUE);
+            filtro = savedInstanceState.getInt("filtro", R.string.filtro_todas);
         } else {
             usarDiaDoLembrete(getIntent());
         }
@@ -196,7 +199,11 @@ public class MainActivity extends AppCompatActivity {
         setIntent(intent);
         if (intent.hasExtra(Lembretes.EXTRA_DIA)) {
             usarDiaDoLembrete(intent);
-            if (findViewById(R.id.listaTarefas) != null) carregarTarefasDoDia();
+            filtro = R.string.filtro_todas;
+            if (findViewById(R.id.listaTarefas) != null) {
+                atualizarRotuloFiltro();
+                carregarTarefasDoDia();
+            }
         }
     }
 
@@ -262,11 +269,35 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.diaAnterior).setOnClickListener(v -> moverDia(-1));
         findViewById(R.id.proximoDia).setOnClickListener(v -> moverDia(1));
         findViewById(R.id.escolherData).setOnClickListener(v -> abrirCalendario());
+        findViewById(R.id.filtrarTarefas).setOnClickListener(this::abrirFiltro);
+        atualizarRotuloFiltro();
 
         Button adicionar = findViewById(R.id.btnAdicionarTarefa);
         adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
+    }
+
+    private void atualizarRotuloFiltro() {
+        Button botao = findViewById(R.id.filtrarTarefas);
+        botao.setText(getString(R.string.mostrar_tarefas, getString(filtro)));
+    }
+
+    private void abrirFiltro(View ancora) {
+        PopupMenu menu = new PopupMenu(this, ancora);
+        for (int opcao : new int[]{R.string.filtro_todas, R.string.filtro_pendentes,
+                R.string.filtro_concluidas}) {
+            menu.getMenu().add(0, opcao, 0, opcao);
+        }
+        menu.getMenu().setGroupCheckable(0, true, true);
+        menu.getMenu().findItem(filtro).setChecked(true);
+        menu.setOnMenuItemClickListener(item -> {
+            filtro = item.getItemId();
+            atualizarRotuloFiltro();
+            carregarTarefasDoDia();
+            return true;
+        });
+        menu.show();
     }
 
     private void exibirIdentidade(String nome) {
@@ -409,17 +440,16 @@ public class MainActivity extends AppCompatActivity {
                     if (consulta != consultaAtual) return;
                     lista.removeAllViews();
 
-                    mensagem.setText("Nenhuma tarefa neste dia.");
-                    mensagem.setVisibility(
-                            tarefas.isEmpty() ? View.VISIBLE : View.GONE
-                    );
-
                     String[] niveis = getResources().getStringArray(R.array.niveis_prioridade);
                     int concluidas = 0;
 
                     for (BancoLocal.Tarefa tarefa : tarefas) {
                         if (tarefa.concluida) {
                             concluidas++;
+                        }
+                        if ((filtro == R.string.filtro_pendentes && tarefa.concluida)
+                                || (filtro == R.string.filtro_concluidas && !tarefa.concluida)) {
+                            continue;
                         }
 
                         View item = getLayoutInflater().inflate(
@@ -503,6 +533,17 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     int total = tarefas.size();
+                    if (lista.getChildCount() == 0) {
+                        int vazio = R.string.sem_tarefas_no_dia;
+                        if (total > 0) {
+                            vazio = filtro == R.string.filtro_pendentes
+                                    ? R.string.sem_pendentes : R.string.sem_concluidas;
+                        }
+                        mensagem.setText(vazio);
+                        mensagem.setVisibility(View.VISIBLE);
+                    } else {
+                        mensagem.setVisibility(View.GONE);
+                    }
 
                     int porcentagem = total == 0 ? 0 : Math.round(concluidas * 100f / total);
                     int restantes = total - concluidas;

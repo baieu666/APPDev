@@ -183,12 +183,21 @@
                 android:textColor="@color/agenda_texto"
                 android:textSize="22sp"
                 android:textStyle="bold" />
+            <Button
+                android:id="@+id/filtrarTarefas"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textAllCaps="false"
+                android:textColor="@color/agenda_verde" />
             <TextView
                 android:id="@+id/textSemTarefas"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Nenhuma tarefa neste dia."
+                android:text="@string/sem_tarefas_no_dia"
+                android:visibility="gone"
                 android:textColor="@color/texto_secundario"
                 android:textSize="16sp"
                 android:background="@drawable/cartao_agenda"

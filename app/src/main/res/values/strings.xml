@@ -10,6 +10,13 @@
     <string name="rotulo_prioridade">Prioridade: %1$s</string>
     <string name="salvar_e_adicionar">Salvar e adicionar outra</string>
     <string name="progresso_dia">Progresso do dia</string>
+    <string name="mostrar_tarefas">Mostrar: %1$s</string>
+    <string name="filtro_todas">Todas</string>
+    <string name="filtro_pendentes">Pendentes</string>
+    <string name="filtro_concluidas">Concluídas</string>
+    <string name="sem_tarefas_no_dia">Nenhuma tarefa neste dia.</string>
+    <string name="sem_pendentes">Nenhuma tarefa pendente neste dia.</string>
+    <string name="sem_concluidas">Nenhuma tarefa concluída neste dia.</string>
     <string-array name="niveis_prioridade">
         <item>Baixa</item>
         <item>Normal</item>
