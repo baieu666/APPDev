@@ -1,9 +1,12 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.ProjetoFaculdadeYourDay" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
+<resources>
+    <style name="Base.Theme.ProjetoFaculdadeYourDay" parent="Theme.Material3.DayNight.NoActionBar" />
 
-    <style name="Theme.ProjetoFaculdadeYourDay" parent="Base.Theme.ProjetoFaculdadeYourDay" />
+    <style name="Theme.ProjetoFaculdadeYourDay" parent="Base.Theme.ProjetoFaculdadeYourDay">
+        <item name="colorPrimary">@color/agenda_verde</item>
+        <item name="colorOnPrimary">@color/agenda_tinta</item>
+        <item name="colorSecondary">@color/agenda_verde</item>
+        <item name="colorAccent">@color/agenda_verde</item>
+        <item name="android:colorAccent">@color/agenda_verde</item>
+        <item name="android:windowBackground">@color/agenda_fundo</item>
+    </style>
 </resources>

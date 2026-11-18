@@ -1,0 +1,5 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/acaoEditar" android:title="@string/editar_tarefa" />
+    <item android:id="@+id/acaoCopiar" android:title="@string/copiar_tarefa" />
+    <item android:id="@+id/acaoExcluir" android:title="@string/excluir_tarefa" />
+</menu>

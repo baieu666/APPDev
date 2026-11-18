@@ -16,6 +16,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.PopupMenu;
+import android.content.res.Configuration;
+import android.os.Build;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -125,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        getDelegate().setLocalNightMode(temaSalvo());
         super.onCreate(savedInstanceState);
 
         if (savedInstanceState != null) dataEscolhida = savedInstanceState.getLong("dataEscolhida", Long.MIN_VALUE);
@@ -213,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
         saudacao.setText("Olá, " + nome + "!");
 
         configurarFotoPerfil(nome);
+        findViewById(R.id.escolherTema).setOnClickListener(v -> escolherTema());
         findViewById(R.id.diaAnterior).setOnClickListener(v -> moverDia(-1));
         findViewById(R.id.proximoDia).setOnClickListener(v -> moverDia(1));
         findViewById(R.id.escolherData).setOnClickListener(v -> abrirCalendario());
@@ -221,6 +227,27 @@ public class MainActivity extends AppCompatActivity {
         adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
+    }
+
+    private int temaSalvo() {
+        return getPreferences(MODE_PRIVATE).getInt("tema", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+    }
+
+    private void escolherTema() {
+        int[] modos = {AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+                AppCompatDelegate.MODE_NIGHT_NO, AppCompatDelegate.MODE_NIGHT_YES};
+        int atual = temaSalvo();
+        int selecionado = atual == modos[1] ? 1 : atual == modos[2] ? 2 : 0;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.tema)
+                .setSingleChoiceItems(R.array.temas, selecionado, (dialog, posicao) -> {
+                    dialog.dismiss();
+                    int modo = modos[posicao];
+                    getPreferences(MODE_PRIVATE).edit().putInt("tema", modo).apply();
+                    getDelegate().setLocalNightMode(modo);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void configurarFotoPerfil(String nome) {
@@ -275,12 +302,13 @@ public class MainActivity extends AppCompatActivity {
     private void ajustarBarras() {
         View raiz = findViewById(R.id.main);
 
-        // Deixa os ícones das barras claros sobre o fundo preto.
-        WindowCompat.getInsetsController(getWindow(), raiz)
-                .setAppearanceLightStatusBars(false);
-
-        WindowCompat.getInsetsController(getWindow(), raiz)
-                .setAppearanceLightNavigationBars(false);
+        int modo = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        boolean temaClaro = modo != Configuration.UI_MODE_NIGHT_YES;
+        WindowCompat.getInsetsController(getWindow(), raiz).setAppearanceLightStatusBars(temaClaro);
+        WindowCompat.getInsetsController(getWindow(), raiz).setAppearanceLightNavigationBars(temaClaro);
+        if (Build.VERSION.SDK_INT < 26) {
+            getWindow().setNavigationBarColor(android.graphics.Color.BLACK);
+        }
 
         // Evita que o conteúdo fique atrás das barras ou do teclado.
         ViewCompat.setOnApplyWindowInsetsListener(raiz, (view, insets) -> {
@@ -426,9 +454,9 @@ public class MainActivity extends AppCompatActivity {
                         };
 
                         View.OnClickListener editar = view -> abrirFormulario(tarefa);
-                        View botaoEditar = item.findViewById(R.id.btnEditarTarefa);
-                        botaoEditar.setContentDescription("Editar " + tarefa.nome);
-                        botaoEditar.setOnClickListener(editar);
+                        View acoes = item.findViewById(R.id.acoesTarefa);
+                        acoes.setContentDescription(getString(R.string.acoes_da_tarefa, tarefa.nome));
+                        acoes.setOnClickListener(v -> abrirAcoesTarefa(v, tarefa));
                         item.setOnClickListener(editar);
                         titulo.setOnClickListener(editar);
                         horario.setOnClickListener(editar);
@@ -463,6 +491,51 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void abrirAcoesTarefa(View ancora, BancoLocal.Tarefa tarefa) {
+        PopupMenu menu = new PopupMenu(this, ancora);
+        menu.inflate(R.menu.acoes_tarefa);
+        menu.setOnMenuItemClickListener(item -> {
+            int acao = item.getItemId();
+            if (acao == R.id.acaoEditar) abrirFormulario(tarefa);
+            else if (acao == R.id.acaoCopiar) escolherDiaDaCopia(tarefa);
+            else if (acao == R.id.acaoExcluir) confirmarExclusao(tarefa);
+            else return false;
+            return true;
+        });
+        menu.show();
+    }
+
+    private void escolherDiaDaCopia(BancoLocal.Tarefa tarefa) {
+        Calendar origem = Calendar.getInstance();
+        origem.setTimeInMillis(tarefa.prazo);
+        Calendar sugestao = (Calendar) origem.clone();
+        sugestao.add(Calendar.DAY_OF_MONTH, 1);
+        DatePickerDialog calendario = new DatePickerDialog(this, (view, ano, mes, dia) -> {
+            Calendar destino = (Calendar) origem.clone();
+            destino.set(ano, mes, dia);
+            if (ano == origem.get(Calendar.YEAR) && mes == origem.get(Calendar.MONTH)
+                    && dia == origem.get(Calendar.DAY_OF_MONTH)) {
+                avisar(getString(R.string.mesma_data));
+                return;
+            }
+            long prazo = destino.getTimeInMillis();
+            executor.execute(() -> {
+                try {
+                    banco.salvarTarefa(tarefa.nome, prazo, tarefa.prioridade);
+                    atualizarTela(() -> {
+                        selecionarDia(destino);
+                        avisar(getString(R.string.tarefa_copiada, formatar(prazo, "dd/MM/yyyy")));
+                    });
+                } catch (RuntimeException erro) {
+                    Log.e("YourDay", "Erro ao copiar tarefa", erro);
+                    atualizarTela(() -> avisar(getString(R.string.erro_copia)));
+                }
+            });
+        }, sugestao.get(Calendar.YEAR), sugestao.get(Calendar.MONTH), sugestao.get(Calendar.DAY_OF_MONTH));
+        calendario.setTitle(R.string.copiar_tarefa);
+        calendario.show();
     }
 
     private void abrirFormulario(BancoLocal.Tarefa existente) {

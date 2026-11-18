@@ -27,7 +27,7 @@
             android:id="@+id/textNomeTarefa"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/agenda_texto"
             android:textSize="18sp"
             android:textStyle="bold" />
         <TextView
@@ -52,13 +52,13 @@
             android:layout_marginTop="3dp" />
     </LinearLayout>
     <Button
-        android:id="@+id/btnEditarTarefa"
+        android:id="@+id/acoesTarefa"
         style="?android:attr/borderlessButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:minWidth="56dp"
         android:minHeight="48dp"
-        android:text="Editar"
+        android:text="@string/acoes"
         android:textAllCaps="false"
         android:textColor="@color/agenda_verde" />
 </LinearLayout>

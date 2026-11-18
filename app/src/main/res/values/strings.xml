@@ -15,4 +15,18 @@
         <item>Normal</item>
         <item>Alta</item>
     </string-array>
+    <string name="tema">Tema</string>
+    <string-array name="temas">
+        <item>Seguir o sistema</item>
+        <item>Claro</item>
+        <item>Escuro</item>
+    </string-array>
+    <string name="acoes">Ações</string>
+    <string name="acoes_da_tarefa">Ações de %1$s</string>
+    <string name="editar_tarefa">Editar</string>
+    <string name="copiar_tarefa">Copiar para outro dia</string>
+    <string name="excluir_tarefa">Excluir</string>
+    <string name="tarefa_copiada">Tarefa copiada para %1$s.</string>
+    <string name="mesma_data">Escolha um dia diferente para copiar a tarefa.</string>
+    <string name="erro_copia">Não foi possível copiar a tarefa. Tente novamente.</string>
 </resources>

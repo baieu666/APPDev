@@ -1,11 +1,13 @@
 <resources>
-    <color name="agenda_fundo">#101713</color>
-    <color name="agenda_painel">#1A231E</color>
-    <color name="agenda_borda">#38483D</color>
-    <color name="agenda_verde">#ACEDAF</color>
-    <color name="agenda_destaque">#263C2D</color>
-    <color name="texto_secundario">#C2CEC4</color>
-    <color name="prioridade_alta">#FFCF88</color>
-    <color name="agenda_tinta">#102116</color>
-    <color name="agenda_atrasada">#FFA998</color>
+    <color name="agenda_fundo">#F4F8F3</color>
+    <color name="agenda_painel">#FFFFFF</color>
+    <color name="agenda_borda">#B8C9BD</color>
+    <color name="agenda_verde">#226132</color>
+    <color name="agenda_destaque">#DCEEDC</color>
+    <color name="texto_secundario">#42594A</color>
+    <color name="prioridade_alta">#834B00</color>
+    <color name="agenda_tinta">#FFFFFF</color>
+    <color name="agenda_atrasada">#A32E23</color>
+    <color name="agenda_texto">#15271B</color>
+    <color name="agenda_trilho">#A8BFAE</color>
 </resources>
