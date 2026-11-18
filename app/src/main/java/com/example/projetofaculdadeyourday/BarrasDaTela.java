@@ -10,8 +10,8 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 final class BarrasDaTela {
-    static void ajustarBarras(AppCompatActivity tela) {
-        View raiz = tela.findViewById(R.id.main);
+    static void ajustarBarras(AppCompatActivity tela, int idRaiz) {
+        View raiz = tela.findViewById(idRaiz);
 
         int modo = tela.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         boolean temaClaro = modo != Configuration.UI_MODE_NIGHT_YES;

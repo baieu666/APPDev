@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void mostrarEntrada() {
         setContentView(R.layout.activity_main);
-        BarrasDaTela.ajustarBarras(this);
+        BarrasDaTela.ajustarBarras(this, R.id.entrada);
 
         editNome = findViewById(R.id.editNome);
         btnComecar = findViewById(R.id.btnComecar);
@@ -254,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void mostrarInicio(String nome) {
         setContentView(R.layout.activity_inicio);
-        BarrasDaTela.ajustarBarras(this);
+        BarrasDaTela.ajustarBarras(this, R.id.main);
 
         exibirIdentidade(nome);
         findViewById(R.id.abrirPerfil).setOnClickListener(v -> {

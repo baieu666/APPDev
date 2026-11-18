@@ -29,7 +29,7 @@ public class PerfilActivity extends AppCompatActivity {
         super.onCreate(estado);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_perfil);
-        BarrasDaTela.ajustarBarras(this);
+        BarrasDaTela.ajustarBarras(this, R.id.main);
 
         String nome = getIntent().getStringExtra(EXTRA_NOME);
         EditText campo = findViewById(R.id.nomeDoPerfil);
