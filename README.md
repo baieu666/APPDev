@@ -13,7 +13,8 @@ Aplicativo Android de organizacao de rotina, desenvolvido em Java e XML como pro
 - Exclusao de tarefas com confirmacao por toque longo.
 - Navegação pela agenda com calendário e botões de dia anterior e seguinte.
 - Edição, prioridades e cópia de tarefas entre dias.
-- Foto de perfil opcional e temas claro, escuro ou do sistema.
+- Tela **Meu perfil**, acessível abaixo da saudação da agenda. Permite editar o nome e escolher, trocar ou remover a foto. Ao salvar o nome, a agenda atualiza a saudação.
+- Temas claro, escuro ou do sistema.
 - Lembretes locais de prazo, opcionais. Para ligar, toque em **Ativar lembretes de prazo** na agenda e permita as notificações se o Android solicitar. Toque no mesmo controle para desligar.
 
 Os lembretes acompanham as alterações nas tarefas. Ao tocar em um aviso, o aplicativo abre a data da tarefa. O agendamento usa alarmes inexatos do Android, que podem chegar após o horário, especialmente em economia de bateria. Ao reiniciar o aparelho, o app recupera os prazos pendentes. Os dados ficam no próprio dispositivo.

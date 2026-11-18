@@ -1,0 +1,26 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/editarFoto"
+    android:layout_width="52dp"
+    android:layout_height="52dp"
+    android:background="@drawable/fundo_avatar"
+    android:foreground="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:contentDescription="@string/escolher_foto">
+    <TextView
+        android:id="@+id/inicialPerfil"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:importantForAccessibility="no"
+        android:textColor="#C2F9D7"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+    <ImageView
+        android:id="@+id/fotoPerfil"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+</FrameLayout>

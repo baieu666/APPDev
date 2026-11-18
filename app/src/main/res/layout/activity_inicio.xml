@@ -54,41 +54,30 @@
                 android:layout_marginTop="18dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-                <FrameLayout
-                    android:id="@+id/editarFoto"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:background="@drawable/fundo_avatar"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:contentDescription="@string/escolher_foto">
-                    <TextView
-                        android:id="@+id/inicialPerfil"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:importantForAccessibility="no"
-                        android:textColor="#C2F9D7"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                    <ImageView
-                        android:id="@+id/fotoPerfil"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:importantForAccessibility="no"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-                </FrameLayout>
-                <TextView
-                    android:id="@+id/textSaudacao"
+                <include layout="@layout/avatar_perfil" />
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:layout_marginStart="14dp"
-                    android:textColor="@color/agenda_texto"
-                    android:textSize="26sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+                    <TextView
+                        android:id="@+id/textSaudacao"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/agenda_texto"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/abrirPerfil"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="@string/meu_perfil"
+                        android:textAllCaps="false"
+                        android:textColor="@color/agenda_verde" />
+                </LinearLayout>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="match_parent"

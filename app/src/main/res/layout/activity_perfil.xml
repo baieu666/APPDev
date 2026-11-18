@@ -1,0 +1,85 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/agenda_fundo"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:focusableInTouchMode="true"
+        android:padding="24dp">
+        <Button
+            android:id="@+id/voltarAgenda"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/voltar_agenda"
+            android:textAllCaps="false"
+            android:textColor="@color/agenda_verde" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/meu_perfil"
+            android:textColor="@color/agenda_texto"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/cartao_agenda"
+            android:orientation="vertical"
+            android:padding="20dp">
+            <include
+                layout="@layout/avatar_perfil"
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:layout_gravity="center_horizontal" />
+            <Button
+                android:id="@+id/acaoFotoPerfil"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:minHeight="48dp"
+                android:text="@string/alterar_foto"
+                android:textAllCaps="false"
+                android:textColor="@color/agenda_verde" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:labelFor="@id/nomeDoPerfil"
+                android:text="@string/nome_perfil"
+                android:textColor="@color/agenda_texto"
+                android:textSize="18sp" />
+            <EditText
+                android:id="@+id/nomeDoPerfil"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="52dp"
+                android:imeOptions="actionDone"
+                android:inputType="textPersonName|textCapWords"
+                android:maxLength="40"
+                android:singleLine="true"
+                android:textColor="@color/agenda_texto"
+                android:textSize="18sp" />
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/salvarNomePerfil"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:minHeight="52dp"
+                android:background="@drawable/acao_principal"
+                android:text="@string/salvar_nome"
+                android:textAllCaps="false"
+                android:textColor="@color/agenda_tinta"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

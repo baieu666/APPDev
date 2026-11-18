@@ -5,12 +5,9 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.provider.Settings;
-import android.graphics.Bitmap;
-import android.widget.ImageView;
 import android.net.Uri;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import java.io.IOException;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -22,12 +19,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.PopupMenu;
-import android.content.res.Configuration;
 import android.os.Build;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import android.app.DatePickerDialog;
@@ -56,10 +48,19 @@ public class MainActivity extends AppCompatActivity {
         return new SimpleDateFormat(formato, PORTUGUES_BRASIL).format(new Date(instante));
     }
 
-    private FotoPerfil fotos;
-    private final ActivityResultLauncher<String> escolherFoto = registerForActivityResult(
-            new ActivityResultContracts.GetContent(), uri -> {
-                if (uri != null) atualizarFoto(uri, false);
+    private AvatarPerfil avatar;
+    private String nomePerfil;
+    private final ActivityResultLauncher<Intent> abrirPerfil = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), resultado -> {
+                Intent dados = resultado.getData();
+                if (resultado.getResultCode() == RESULT_OK && dados != null) {
+                    String nome = dados.getStringExtra(PerfilActivity.EXTRA_NOME);
+                    if (nome != null && findViewById(R.id.textSaudacao) != null) {
+                        exibirIdentidade(nome);
+                        return;
+                    }
+                }
+                if (findViewById(R.id.fotoPerfil) != null) avatar.recarregar();
             });
 
     private final ActivityResultLauncher<String> pedirPermissao = registerForActivityResult(
@@ -153,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
 
         EdgeToEdge.enable(this);
         banco = new BancoLocal(this);
-        fotos = new FotoPerfil(this);
+        avatar = new AvatarPerfil(this);
 
         mostrarEntrada();
         habilitarEntrada(false);
@@ -201,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void mostrarEntrada() {
         setContentView(R.layout.activity_main);
-        ajustarBarras();
+        BarrasDaTela.ajustarBarras(this);
 
         editNome = findViewById(R.id.editNome);
         btnComecar = findViewById(R.id.btnComecar);
@@ -246,12 +247,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void mostrarInicio(String nome) {
         setContentView(R.layout.activity_inicio);
-        ajustarBarras();
+        BarrasDaTela.ajustarBarras(this);
 
-        TextView saudacao = findViewById(R.id.textSaudacao);
-        saudacao.setText("Olá, " + nome + "!");
-
-        configurarFotoPerfil(nome);
+        exibirIdentidade(nome);
+        findViewById(R.id.abrirPerfil).setOnClickListener(v -> {
+            Intent perfil = new Intent(this, PerfilActivity.class)
+                    .putExtra(PerfilActivity.EXTRA_NOME, nomePerfil)
+                    .putExtra(PerfilActivity.EXTRA_TEMA, temaSalvo());
+            abrirPerfil.launch(perfil);
+        });
         findViewById(R.id.configurarLembretes).setOnClickListener(v -> escolherLembretes());
         atualizarRotuloLembretes();
         findViewById(R.id.escolherTema).setOnClickListener(v -> escolherTema());
@@ -263,6 +267,13 @@ public class MainActivity extends AppCompatActivity {
         adicionar.setOnClickListener(view -> abrirFormulario(null));
 
         carregarTarefasDoDia();
+    }
+
+    private void exibirIdentidade(String nome) {
+        nomePerfil = nome;
+        TextView saudacao = findViewById(R.id.textSaudacao);
+        saudacao.setText(getString(R.string.saudacao, nome));
+        avatar.vincular(nome);
     }
 
     private void atualizarRotuloLembretes() {
@@ -346,84 +357,9 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void configurarFotoPerfil(String nome) {
-        TextView inicial = findViewById(R.id.inicialPerfil);
-        inicial.setText(nome.isEmpty() ? "?" :
-                nome.substring(0, nome.offsetByCodePoints(0, 1)).toUpperCase(PORTUGUES_BRASIL));
-        View avatar = findViewById(R.id.editarFoto);
-        avatar.setClipToOutline(true);
-        avatar.setOnClickListener(v -> {
-            if (findViewById(R.id.fotoPerfil).getVisibility() != View.VISIBLE) {
-                escolherFoto.launch("image/*");
-                return;
-            }
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.foto_perfil)
-                    .setItems(new String[]{getString(R.string.trocar_foto), getString(R.string.remover_foto)},
-                            (dialog, opcao) -> {
-                                if (opcao == 0) escolherFoto.launch("image/*");
-                                else atualizarFoto(null, true);
-                            })
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show();
-        });
-        atualizarFoto(null, false);
-    }
-
-    private void atualizarFoto(Uri origem, boolean remover) {
-        FotoPerfil.FILA.execute(() -> {
-            try {
-                if (remover) fotos.remover();
-                Bitmap bitmap = origem == null ? fotos.carregar() : fotos.salvar(origem);
-                atualizarTela(() -> {
-                    ImageView foto = findViewById(R.id.fotoPerfil);
-                    if (foto == null) return;
-                    foto.setImageBitmap(bitmap);
-                    foto.setVisibility(bitmap == null ? View.GONE : View.VISIBLE);
-                    findViewById(R.id.editarFoto).setContentDescription(getString(
-                            bitmap == null ? R.string.escolher_foto : R.string.alterar_foto));
-                });
-            } catch (IOException | RuntimeException erro) {
-                Log.w("YourDay", "Falha ao acessar foto de perfil", erro);
-                atualizarTela(() -> avisar(getString(R.string.erro_foto)));
-            }
-        });
-    }
-
     private void habilitarEntrada(boolean habilitada) {
         editNome.setEnabled(habilitada);
         btnComecar.setEnabled(habilitada);
-    }
-
-    private void ajustarBarras() {
-        View raiz = findViewById(R.id.main);
-
-        int modo = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        boolean temaClaro = modo != Configuration.UI_MODE_NIGHT_YES;
-        WindowCompat.getInsetsController(getWindow(), raiz).setAppearanceLightStatusBars(temaClaro);
-        WindowCompat.getInsetsController(getWindow(), raiz).setAppearanceLightNavigationBars(temaClaro);
-        if (Build.VERSION.SDK_INT < 26) {
-            getWindow().setNavigationBarColor(android.graphics.Color.BLACK);
-        }
-
-        // Evita que o conteúdo fique atrás das barras ou do teclado.
-        ViewCompat.setOnApplyWindowInsetsListener(raiz, (view, insets) -> {
-            Insets espacos = insets.getInsets(
-                    WindowInsetsCompat.Type.systemBars()
-                            | WindowInsetsCompat.Type.ime()
-            );
-
-            view.setPadding(
-                    espacos.left,
-                    espacos.top,
-                    espacos.right,
-                    espacos.bottom
-            );
-
-            return insets;
-        });
-
-        ViewCompat.requestApplyInsets(raiz);
     }
 
     private void atualizarTela(Runnable acao) {
